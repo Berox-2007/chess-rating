@@ -1,0 +1,2052 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تصنيف شطرنج الجروب المباشر - Live Chess Ratings</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Cairo & Tajawal (Arabic), Inter & JetBrains Mono (Numbers/Usernames) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Cairo', 'Tajawal', 'Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            obsidian: '#0d1117',
+            cardDark: '#161b22',
+            cardHover: '#1c232d',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #0d1117;
+      color: #f3f4f6;
+      font-family: 'Cairo', 'Tajawal', 'Inter', sans-serif;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Sticky player column on horizontal scroll */
+    .sticky-col {
+      position: sticky;
+      right: 0;
+      z-index: 10;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0d1117;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #21262d;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #30363d;
+    }
+
+    /* Top 1 subtle gold glow */
+    .rank-1-glow {
+      box-shadow: inset 0 0 28px rgba(245, 158, 11, 0.08);
+    }
+
+    @keyframes pulse-live {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    .live-dot {
+      animation: pulse-live 1.8s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-emerald-500/30 selection:text-emerald-200">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 left-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Top Header -->
+  <header class="sticky top-0 z-30 bg-[#0d1117]/95 backdrop-blur-md border-b border-gray-800/90">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+
+      <!-- Brand & Live Badge -->
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-600 to-sky-700 flex items-center justify-center shadow-lg shadow-emerald-950/60 border border-emerald-400/25 shrink-0">
+          <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 22H5v-2h14v2M17.16 8.26A4.96 4.96 0 0 0 18 5.5C18 3.57 16.43 2 14.5 2c-1.3 0-2.43.72-3.03 1.78L9.6 5.21 8.5 4.5 7 6l1.5 1.5L7 9l2.5 2.5L7 17h10l-1.5-5.5 1.66-3.24z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-base sm:text-xl font-extrabold tracking-tight text-white">تصنيف شطرنج الجروب المباشر - Live Chess Ratings</h1>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 live-dot"></span>
+              LIVE
+            </span>
+            <span id="role-status-badge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-gray-800 text-gray-300 border border-gray-700">
+              👁️ وضع المشاهدة
+            </span>
+          </div>
+          <p class="text-xs text-gray-400">تحديث لحظي ومباشر لتقييمات الأعضاء على Chess.com و Lichess و FIDE</p>
+        </div>
+      </div>
+
+      <!-- Controls: Auto-Refresh Toggle, Manual Refresh, Admin Login / Roster Manager -->
+      <div class="flex flex-wrap items-center gap-2.5">
+        <!-- Auto Refresh 60s Toggle -->
+        <label class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[#161b22] border border-gray-800 hover:border-gray-700 text-xs text-gray-300 cursor-pointer select-none transition">
+          <input type="checkbox" id="auto-refresh-toggle" checked onchange="toggleAutoRefresh()" class="w-4 h-4 rounded accent-emerald-500 cursor-pointer" />
+          <span>تحديث تلقائي كل 60 ثانية</span>
+          <span id="auto-refresh-countdown" class="font-mono text-[11px] text-emerald-400 font-bold">(60s)</span>
+        </label>
+
+        <!-- Manual Refresh Button -->
+        <button id="btn-refresh-now" onclick="fetchAllLiveRatings(true)" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs sm:text-sm font-bold transition shadow-lg shadow-emerald-950/50 cursor-pointer">
+          <svg id="refresh-spinner" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          <span>تحديث اللايف ريتينج الآن</span>
+        </button>
+
+        <!-- Visitor Mode: Admin Login Button -->
+        <button id="btn-admin-login" onclick="openAdminLoginModal()" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#161b22] hover:bg-gray-800 border border-gray-700 text-gray-200 text-xs sm:text-sm font-bold transition cursor-pointer">
+          <span>دخول المشرف 🔒</span>
+        </button>
+
+        <!-- Admin Mode Controls (Hidden until unlocked with PIN) -->
+        <div id="admin-header-controls" class="hidden items-center gap-2">
+          <button onclick="openRosterModal()" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm font-bold transition shadow-lg shadow-amber-950/40 cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+            <span>إدارة الأعضاء 🔓</span>
+            <span id="roster-count-badge" class="px-2 py-0.5 text-[11px] rounded-md bg-black/40 text-amber-200 font-mono font-bold">40</span>
+          </button>
+
+          <button onclick="lockAdminMode()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-800 hover:bg-rose-950/70 border border-gray-700 hover:border-rose-500/40 text-gray-300 hover:text-rose-200 text-xs font-bold transition cursor-pointer" title="قفل وضع المشرف والعودة لوضع المشاهدة">
+            <span>قفل وضع المشرف 🔒</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Live Connection Status Bar + Progress Bar -->
+  <div class="bg-[#161b22]/90 border-b border-gray-800/80">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-2.5 space-y-2 text-xs">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <!-- Live Fetch Status Message -->
+        <div class="flex items-center gap-2.5">
+          <span id="status-indicator-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+          <span id="live-status-message" class="font-semibold text-gray-200">جاري تحديث 40 لاعباً...</span>
+        </div>
+
+        <!-- Per-Platform Connection Pills -->
+        <div class="flex flex-wrap items-center gap-2">
+          <span id="pill-roster" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/50 border border-emerald-500/30 text-emerald-300 font-mono text-[11px] font-bold">
+            <span>Roster</span>
+            <span id="pill-roster-count">40 ✓</span>
+          </span>
+          <span id="pill-chesscom" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0d1117] border border-gray-800 text-gray-400 font-mono text-[11px]">
+            <span>Chess.com</span>
+            <span class="pill-state">⏳</span>
+          </span>
+          <span id="pill-lichess" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0d1117] border border-gray-800 text-gray-400 font-mono text-[11px]">
+            <span>Lichess</span>
+            <span class="pill-state">⏳</span>
+          </span>
+          <span id="pill-fide" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0d1117] border border-gray-800 text-gray-400 font-mono text-[11px]">
+            <span>FIDE</span>
+            <span class="pill-state">⏳</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Live Progress Bar -->
+      <div id="fetch-progress-wrap" class="w-full h-1.5 bg-[#0d1117] rounded-full overflow-hidden">
+        <div id="fetch-progress-bar" class="h-full bg-gradient-to-l from-emerald-400 via-teal-500 to-sky-500 transition-all duration-300 rounded-full" style="width: 15%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-6 space-y-5">
+
+    <!-- Top Leaders Summary Cards -->
+    <section id="summary-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <!-- Rendered dynamically -->
+    </section>
+
+    <!-- 14-View Navigation & Filters Card -->
+    <section class="bg-[#161b22] border border-gray-800 rounded-2xl p-4 space-y-3.5 shadow-xl">
+      
+      <!-- Primary Categories Row -->
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-800 pb-3.5">
+        <div id="primary-category-tabs" class="flex flex-wrap items-center gap-1.5">
+          <!-- Rendered by JS -->
+        </div>
+
+        <!-- Search & Provisional Toggle -->
+        <div class="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
+          <label class="inline-flex items-center gap-2 cursor-pointer select-none bg-[#0d1117] border border-gray-800 hover:border-gray-700 px-3 py-1.5 rounded-xl text-xs text-gray-300 transition">
+            <input type="checkbox" id="toggle-provisional" checked onchange="handleProvisionalChange()" class="w-4 h-4 rounded accent-emerald-500 cursor-pointer" />
+            <span>احتساب التقييمات المؤقتة <span class="font-mono text-amber-400 font-bold">(?)</span></span>
+          </label>
+
+          <div class="relative flex-1 sm:w-64">
+            <input type="text" id="search-input" oninput="renderLeaderboard()" placeholder="ابحث بالاسم أو اليوزر أو FIDE ID..." class="w-full bg-[#0d1117] border border-gray-800 focus:border-emerald-500 focus:outline-none rounded-xl pr-9 pl-3 py-1.5 text-xs sm:text-sm text-gray-100 placeholder-gray-500 transition" />
+            <svg class="w-4 h-4 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Secondary Sub-Tabs Row -->
+      <div id="sub-tabs-container" class="flex flex-wrap items-center justify-between gap-2">
+        <div id="secondary-sub-tabs" class="flex flex-wrap items-center gap-1.5"></div>
+        <div id="view-description" class="text-xs text-gray-400"></div>
+      </div>
+    </section>
+
+    <!-- Main Leaderboard Table Card -->
+    <section class="bg-[#161b22] border border-gray-800 rounded-2xl overflow-hidden shadow-2xl">
+      <div class="overflow-x-auto">
+        <table class="w-full text-right border-collapse whitespace-nowrap">
+          <thead>
+            <!-- Platform Super Headers -->
+            <tr class="bg-[#0d1117] border-b border-gray-800 text-[11px] uppercase tracking-wider text-gray-400">
+              <th colspan="3" class="py-2.5 px-4 text-right font-bold border-l border-gray-800/80">اللاعب والترتيب</th>
+              <th colspan="3" class="py-2.5 px-4 text-center font-bold text-emerald-400 bg-emerald-950/20 border-l border-gray-800/80">التصنيف النشط والفوارق</th>
+              <th colspan="4" class="py-2.5 px-3 text-center font-bold text-sky-400 border-l border-gray-800/80">Chess.com</th>
+              <th colspan="4" class="py-2.5 px-3 text-center font-bold text-emerald-400 border-l border-gray-800/80">Lichess</th>
+              <th colspan="4" class="py-2.5 px-3 text-center font-bold text-amber-400">FIDE (الدولي)</th>
+            </tr>
+            <!-- Sub-Column Headers (Clickable to sort) -->
+            <tr class="bg-gray-900/90 border-b border-gray-800 text-xs text-gray-300 font-semibold select-none">
+              <th class="py-3 px-3 text-center w-14">#</th>
+              <th class="py-3 px-2 text-center w-12" title="تغير المركز">±</th>
+              <th class="py-3 px-4 text-right sticky-col bg-gray-900 border-l border-gray-800/80">اللاعب / الحسابات</th>
+
+              <!-- Active Metric + Gaps -->
+              <th id="col-active-title" onclick="sortByColumn('active')" class="py-3 px-4 text-center bg-emerald-950/25 text-emerald-300 font-bold cursor-pointer hover:bg-emerald-900/35 transition" title="اضغط للترتيب">
+                متوسط الكل (6)
+              </th>
+              <th class="py-3 px-2.5 text-center bg-emerald-950/15 text-gray-400 text-[11px]" title="فارق النقاط عن المركز الأول">عن #1</th>
+              <th class="py-3 px-2.5 text-center bg-emerald-950/15 text-gray-400 text-[11px] border-l border-gray-800/80" title="فارق النقاط عن المركز السابق مباشرة">عن السابق</th>
+
+              <!-- Chess.com (Rapid, Blitz, Bullet, Avg) -->
+              <th onclick="sortByColumn('cc_rapid')" class="py-3 px-3 text-center text-sky-300 cursor-pointer hover:bg-gray-800/80 transition" title="اضغط للترتيب حسب Chess.com Rapid">Rapid <span class="sort-ind text-[10px]" data-col="cc_rapid"></span></th>
+              <th onclick="sortByColumn('cc_blitz')" class="py-3 px-3 text-center text-sky-300 cursor-pointer hover:bg-gray-800/80 transition" title="اضغط للترتيب حسب Chess.com Blitz">Blitz <span class="sort-ind text-[10px]" data-col="cc_blitz"></span></th>
+              <th onclick="sortByColumn('cc_bullet')" class="py-3 px-3 text-center text-sky-300 cursor-pointer hover:bg-gray-800/80 transition" title="اضغط للترتيب حسب Chess.com Bullet">Bullet <span class="sort-ind text-[10px]" data-col="cc_bullet"></span></th>
+              <th onclick="sortByColumn('cc_avg')" class="py-3 px-3 text-center text-sky-200 bg-sky-950/20 font-bold border-l border-gray-800/80 cursor-pointer hover:bg-sky-900/30 transition" title="اضغط للترتيب حسب متوسط Chess.com">Avg <span class="sort-ind text-[10px]" data-col="cc_avg"></span></th>
+
+              <!-- Lichess (Rapid, Blitz, Bullet, Avg) -->
+              <th onclick="sortByColumn('li_rapid')" class="py-3 px-3 text-center text-emerald-300 cursor-pointer hover:bg-gray-800/80 transition" title="اضغط للترتيب حسب Lichess Rapid">Rapid <span class="sort-ind text-[10px]" data-col="li_rapid"></span></th>
+              <th onclick="sortByColumn('li_blitz')" class="py-3 px-3 text-center text-emerald-300 cursor-pointer hover:bg-gray-800/80 transition" title="اضغط للترتيب حسب Lichess Blitz">Blitz <span class="sort-ind text-[10px]" data-col="li_blitz"></span></th>
+              <th onclick="sortByColumn('li_bullet')" class="py-3 px-3 text-center text-emerald-300 cursor-pointer hover:bg-gray-800/80 transition" title="اضغط للترتيب حسب Lichess Bullet">Bullet <span class="sort-ind text-[10px]" data-col="li_bullet"></span></th>
+              <th onclick="sortByColumn('li_avg')" class="py-3 px-3 text-center text-emerald-200 bg-emerald-950/20 font-bold border-l border-gray-800/80 cursor-pointer hover:bg-emerald-900/30 transition" title="اضغط للترتيب حسب متوسط Lichess">Avg <span class="sort-ind text-[10px]" data-col="li_avg"></span></th>
+
+              <!-- FIDE (Classic, Rapid, Blitz, Avg) -->
+              <th onclick="sortByColumn('fide_classic')" class="py-3 px-3 text-center text-amber-300 cursor-pointer hover:bg-gray-800/80 transition" title="اضغط للترتيب حسب FIDE Classic">Classic <span class="sort-ind text-[10px]" data-col="fide_classic"></span></th>
+              <th onclick="sortByColumn('fide_rapid')" class="py-3 px-3 text-center text-amber-300 cursor-pointer hover:bg-gray-800/80 transition" title="اضغط للترتيب حسب FIDE Rapid">Rapid <span class="sort-ind text-[10px]" data-col="fide_rapid"></span></th>
+              <th onclick="sortByColumn('fide_blitz')" class="py-3 px-3 text-center text-amber-300 cursor-pointer hover:bg-gray-800/80 transition" title="اضغط للترتيب حسب FIDE Blitz">Blitz <span class="sort-ind text-[10px]" data-col="fide_blitz"></span></th>
+              <th onclick="sortByColumn('fide_avg')" class="py-3 px-3 text-center text-amber-200 bg-amber-950/20 font-bold cursor-pointer hover:bg-amber-900/30 transition" title="اضغط للترتيب حسب متوسط FIDE">Avg <span class="sort-ind text-[10px]" data-col="fide_avg"></span></th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-tbody" class="divide-y divide-gray-800/70 text-sm">
+            <!-- Populated dynamically via JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Legend Footer -->
+      <div class="bg-[#0d1117]/80 border-t border-gray-800 px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs text-gray-400">
+        <div class="flex flex-wrap items-center gap-4">
+          <span class="inline-flex items-center gap-1.5"><span class="px-1.5 py-0.5 rounded bg-gray-800 text-gray-300 font-mono text-[10px]">2/3</span> عدد الفروع المتاحة والمحتسبة في المتوسط</span>
+          <span class="inline-flex items-center gap-1.5"><span class="text-amber-400 font-mono font-bold">?</span> تقييم مؤقت (Provisional)</span>
+          <span class="inline-flex items-center gap-1.5"><span class="text-emerald-400 font-mono font-bold">▲ +14</span> تغير التقييم منذ فتح الصفحة</span>
+          <span class="inline-flex items-center gap-1.5 text-sky-400">💡 اضغط على عنوان أي عمود للترتيب المباشر</span>
+        </div>
+        <div class="text-gray-500">
+          وضع المشاهدة للجميع • التعديل متاح للمشرف فقط
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Admin PIN Login Modal ("دخول المشرف 🔒") -->
+  <div id="admin-login-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div class="bg-[#161b22] border border-gray-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 bg-[#0d1117] border-b border-gray-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🔒</span>
+          <h2 class="text-base font-extrabold text-white">دخول المشرف</h2>
+        </div>
+        <button onclick="closeAdminLoginModal()" class="p-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <form onsubmit="handleAdminLoginSubmit(event)" class="p-6 space-y-4">
+        <p class="text-sm font-bold text-gray-200 text-center">
+          أدخل الرقم السري فقط
+        </p>
+
+        <div>
+          <input type="password" id="admin-pin-input" required autocomplete="off" placeholder="••••" class="w-full bg-[#0d1117] border border-gray-700 focus:border-amber-500 focus:outline-none rounded-xl px-4 py-2.5 text-center text-lg tracking-[0.35em] text-white font-mono" dir="ltr" />
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="closeAdminLoginModal()" class="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-bold transition cursor-pointer">
+            إلغاء
+          </button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-lg shadow-amber-950/40 cursor-pointer">
+            دخول 🔓
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Roster & Settings Modal ("إدارة الأعضاء") -->
+  <div id="roster-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="bg-[#161b22] border border-gray-800 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden my-auto">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-[#0d1117] border-b border-gray-800 flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-extrabold text-white">لوحة تحكم المشرف — إدارة أعضاء الجروب 🔓</h2>
+          <p class="text-xs text-gray-400">إضافة أو تعديل أو حذف الأعضاء وتصدير ملف الموقع المحدث بضغطة واحدة</p>
+        </div>
+        <button onclick="closeRosterModal()" class="p-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal Tabs -->
+      <div class="px-6 pt-3 bg-gray-900/60 border-b border-gray-800 flex flex-wrap gap-2">
+        <button id="mtab-single" onclick="switchModalTab('single')" class="px-4 py-2 text-xs font-bold rounded-t-xl border-b-2 border-emerald-500 text-emerald-400 bg-gray-800/60 cursor-pointer">
+          قائمة الأعضاء وإضافة / تعديل
+        </button>
+        <button id="mtab-bulk" onclick="switchModalTab('bulk')" class="px-4 py-2 text-xs font-bold rounded-t-xl border-b-2 border-transparent text-gray-400 hover:text-gray-200 cursor-pointer">
+          استيراد جماعي &amp; نسخ احتياطي وتصدير HTML
+        </button>
+        <button id="mtab-security" onclick="switchModalTab('security')" class="px-4 py-2 text-xs font-bold rounded-t-xl border-b-2 border-transparent text-gray-400 hover:text-gray-200 cursor-pointer">
+          تغيير رمز المشرف 🔑
+        </button>
+      </div>
+
+      <!-- Tab 1: Single Add/Edit + Roster Table -->
+      <div id="mview-single" class="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+        <form id="player-form" onsubmit="handleSavePlayer(event)" class="bg-[#0d1117] border border-gray-800 rounded-xl p-4 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 id="form-heading" class="text-sm font-bold text-emerald-400">+ إضافة عضو جديد للجروب</h3>
+            <button type="button" id="btn-cancel-edit" onclick="resetPlayerForm()" class="hidden text-xs text-gray-400 hover:text-white underline cursor-pointer">إلغاء التعديل</button>
+          </div>
+          <input type="hidden" id="field-id" value="" />
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">الاسم المعروض *</label>
+              <input type="text" id="field-name" required placeholder="مثال: Mohammed Ashor" class="w-full bg-[#161b22] border border-gray-800 focus:border-emerald-500 focus:outline-none rounded-lg px-3 py-2 text-xs text-white" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">يوزر Chess.com</label>
+              <input type="text" id="field-chesscom" placeholder="Username" class="w-full bg-[#161b22] border border-gray-800 focus:border-sky-500 focus:outline-none rounded-lg px-3 py-2 text-xs text-white font-mono" dir="ltr" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">يوزر Lichess</label>
+              <input type="text" id="field-lichess" placeholder="Username" class="w-full bg-[#161b22] border border-gray-800 focus:border-emerald-500 focus:outline-none rounded-lg px-3 py-2 text-xs text-white font-mono" dir="ltr" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">FIDE ID (اختياري)</label>
+              <input type="text" id="field-fideid" placeholder="مثال: 54260647" class="w-full bg-[#161b22] border border-gray-800 focus:border-amber-500 focus:outline-none rounded-lg px-3 py-2 text-xs text-white font-mono" dir="ltr" />
+            </div>
+          </div>
+
+          <!-- Optional Manual FIDE Overrides -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-gray-800/80">
+            <div>
+              <label class="block text-[11px] text-gray-400 mb-1">FIDE Classic (اختياري)</label>
+              <input type="number" id="field-fide-std" placeholder="مثال: 1750" class="w-full bg-[#161b22] border border-gray-800 focus:border-amber-500 focus:outline-none rounded-lg px-3 py-1.5 text-xs text-white font-mono" dir="ltr" />
+            </div>
+            <div>
+              <label class="block text-[11px] text-gray-400 mb-1">FIDE Rapid (اختياري)</label>
+              <input type="number" id="field-fide-rpd" placeholder="مثال: 1720" class="w-full bg-[#161b22] border border-gray-800 focus:border-amber-500 focus:outline-none rounded-lg px-3 py-1.5 text-xs text-white font-mono" dir="ltr" />
+            </div>
+            <div>
+              <label class="block text-[11px] text-gray-400 mb-1">FIDE Blitz (اختياري)</label>
+              <input type="number" id="field-fide-blz" placeholder="مثال: 1690" class="w-full bg-[#161b22] border border-gray-800 focus:border-amber-500 focus:outline-none rounded-lg px-3 py-1.5 text-xs text-white font-mono" dir="ltr" />
+            </div>
+          </div>
+
+          <div class="flex justify-end">
+            <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition cursor-pointer">
+              حفظ العضو وتحديث الترتيب
+            </button>
+          </div>
+        </form>
+
+        <!-- Roster List -->
+        <div class="space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-sm font-bold text-gray-200">الأعضاء المسجلون حالياً (<span id="modal-roster-count">40</span>)</h3>
+            <button type="button" onclick="downloadUpdatedHtmlFile()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/35 border border-sky-500/40 text-sky-300 text-xs font-bold transition cursor-pointer">
+              ⬇️ تنزيل ملف index.html محدث بالقائمة الحالية
+            </button>
+          </div>
+          <div class="border border-gray-800 rounded-xl overflow-x-auto">
+            <table class="w-full text-right text-xs whitespace-nowrap">
+              <thead class="bg-[#0d1117] text-gray-400">
+                <tr>
+                  <th class="py-2.5 px-3">#</th>
+                  <th class="py-2.5 px-3">الاسم</th>
+                  <th class="py-2.5 px-3">Chess.com</th>
+                  <th class="py-2.5 px-3">Lichess</th>
+                  <th class="py-2.5 px-3">FIDE ID</th>
+                  <th class="py-2.5 px-3 text-center">إجراءات المشرف</th>
+                </tr>
+              </thead>
+              <tbody id="modal-roster-tbody" class="divide-y divide-gray-800 bg-[#0d1117]/40">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Bulk Import, JSON Backup & Standalone HTML Export -->
+      <div id="mview-bulk" class="hidden p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+        <!-- Standalone HTML Export Card -->
+        <div class="bg-emerald-950/20 border border-emerald-500/30 rounded-xl p-4 space-y-2.5">
+          <h3 class="text-sm font-bold text-emerald-400">تصدير ملف الموقع المستقل (Standalone index.html)</h3>
+          <p class="text-xs text-gray-300 leading-relaxed">
+            عند إضافة أو حذف أعضاء مستقبلاً، اضغط هنا لتنزيل نسخة محدثة من ملف <code class="font-mono text-emerald-300">index.html</code> تحتوي على القائمة الجديدة مدمجة بداخلها، لرفعها مباشرة على GitHub Pages أو Netlify أو Vercel.
+          </p>
+          <button type="button" onclick="downloadUpdatedHtmlFile()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-lg shadow-emerald-950/50 cursor-pointer">
+            ⬇️ تنزيل ملف index.html محدث الآن
+          </button>
+        </div>
+
+        <!-- Bulk Import -->
+        <div class="bg-[#0d1117] border border-gray-800 rounded-xl p-4 space-y-3">
+          <h3 class="text-sm font-bold text-amber-400">استيراد سريع لقائمة الأعضاء (لصق من Excel أو نص)</h3>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            اكتب بيانات كل عضو في سطر منفصل بالترتيب التالي:
+            <code class="bg-[#161b22] px-2 py-0.5 rounded text-emerald-400 font-mono" dir="ltr">Name, ChessComUser, LichessUser, FideID</code>
+            (اكتب <code class="font-mono text-gray-300">-</code> أو اترك الخانة فارغة إذا لم يكن لديه حساب).
+          </p>
+          <textarea id="bulk-paste-area" rows="6" placeholder="Ahmed Samir, ahmed_chess, ahmed_li, -" class="w-full bg-[#161b22] border border-gray-800 focus:border-emerald-500 focus:outline-none rounded-xl p-3 text-xs text-gray-200 font-mono" dir="ltr"></textarea>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="handleBulkImport('append')" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition cursor-pointer">
+              + إضافة للقائمة الحالية
+            </button>
+            <button type="button" onclick="handleBulkImport('replace')" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition cursor-pointer">
+              استبدال القائمة بالكامل
+            </button>
+          </div>
+        </div>
+
+        <!-- JSON Export / Import Backup & Reset to Original 40 -->
+        <div class="bg-[#0d1117] border border-gray-800 rounded-xl p-4 space-y-3">
+          <h3 class="text-sm font-bold text-sky-400">النسخ الاحتياطي (JSON) واستعادة القائمة الأصلية (40 عضواً)</h3>
+          <p class="text-xs text-gray-400">انسخ كود JSON لحفظه، أو الصق نسخة احتياطية سابقة لاستعادتها، أو أعد القائمة إلى الـ 40 عضواً الأصليين.</p>
+          <div class="flex flex-wrap items-center gap-2.5">
+            <button type="button" onclick="exportJsonBackup()" class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition cursor-pointer">
+              نسخ النسخة الاحتياطية (JSON) للحافظة
+            </button>
+            <button type="button" onclick="importJsonBackup()" class="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200 text-xs font-bold transition cursor-pointer">
+              استيراد JSON من مربع النص أعلاه
+            </button>
+            <button type="button" onclick="requestResetToOriginal40()" class="px-4 py-2 rounded-xl bg-rose-950/70 hover:bg-rose-900/80 border border-rose-500/40 text-rose-200 text-xs font-bold transition cursor-pointer">
+              إعادة ضبط إلى الـ 40 عضواً الأصليين
+            </button>
+          </div>
+          <!-- Inline confirmation bar (No confirm()/alert() used) -->
+          <div id="reset-40-confirm-box" class="hidden items-center justify-between gap-3 bg-rose-950/40 border border-rose-500/40 rounded-xl p-3 text-xs text-rose-200">
+            <span>هل أنت متأكد من إعادة القائمة إلى الـ 40 عضواً الأصليين؟</span>
+            <div class="flex items-center gap-2 shrink-0">
+              <button type="button" onclick="executeResetToOriginal40()" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold cursor-pointer">نعم، تأكيد</button>
+              <button type="button" onclick="cancelResetToOriginal40()" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold cursor-pointer">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Change Admin PIN -->
+      <div id="mview-security" class="hidden p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+        <form onsubmit="handleChangeAdminPin(event)" class="bg-[#0d1117] border border-gray-800 rounded-xl p-5 max-w-md space-y-4">
+          <h3 class="text-sm font-bold text-amber-400">تغيير رمز المشرف السري 🔑</h3>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            سيتم حفظ الرمز الجديد بحيث لا يتمكن أي شخص من فتح وضع المشرف إلا بالرمز الجديد.
+          </p>
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">الرمز الجديد (4 خانات على الأقل)</label>
+            <input type="password" id="new-pin-input" required minlength="4" maxlength="20" placeholder="••••" class="w-full bg-[#161b22] border border-gray-700 focus:border-amber-500 focus:outline-none rounded-xl px-4 py-2 text-sm text-white font-mono text-center" dir="ltr" />
+          </div>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition cursor-pointer">
+            حفظ الرمز الجديد 🔑
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Live Chess Group Ratings Application Script -->
+  <script>
+    /**
+     * =========================================================================
+     * 1. HARDCODED 40-PLAYER DEFAULT ROSTER (PERMANENTLY BAKED INTO SOURCE)
+     * =========================================================================
+     */
+    const DEFAULT_PLAYERS = [
+      {"id":"player_1","name":"Mohammed Ashor","chessCom":"MohammedAshor125","lichess":"MohammedAshor125","fideId":"","fideManual":{"standard":null,"rapid":null,"blitz":null},"createdAt":0},
+      {"id":"player_1795165671407","name":"Ahmed Radwan","chessCom":"ahmedradwan12xv","lichess":"ahmed_912","fideId":"555001211","fideManual":{"blitz":1741,"rapid":1888,"standard":1923},"createdAt":1795165671407},
+      {"id":"player_1795166015393","name":"Ali Mowafy","chessCom":"alimowafyy","lichess":"AliMowafy2009","fideId":"54257638","fideManual":{"rapid":1832,"standard":1779,"blitz":1750},"createdAt":1795166015393},
+      {"id":"player_1795166417447","name":"Mohamed Alkhodairy","chessCom":"MoAlkhodairy","lichess":"MoAlkhodairy","fideId":"54259924","fideManual":{"rapid":1995,"blitz":2019,"standard":1873},"createdAt":1795166417448},
+      {"id":"player_1795166672922","name":"Marwan Emad","chessCom":"Marwan_E-mad","lichess":"Maro-Fish","fideId":"54275750","fideManual":{"rapid":1691,"blitz":null,"standard":null},"createdAt":1795166672922},
+      {"id":"player_1795166915269","name":"Yousof Abbas","chessCom":"YousofAbbas","lichess":"Good_Player123","fideId":"10683550","fideManual":{"rapid":2042,"blitz":1985,"standard":1977},"createdAt":1795166915269},
+      {"id":"player_1795172127592","name":"Ammar Shaaban","chessCom":"AMMAR-SHAABAN","lichess":"AMMAR_SHAABAN","fideId":"54252695","fideManual":{"standard":1925,"rapid":2023,"blitz":null},"createdAt":1795172127592},
+      {"id":"player_1795173803098","name":"Abdelrahman Mohamed","chessCom":"LunarLightning","lichess":"lightining2010","fideId":"555033580","fideManual":{"rapid":null,"blitz":null,"standard":null},"createdAt":1795173803098},
+      {"id":"player_1795176683784","name":"Moataz Elashry","chessCom":"MotazElashryGM","lichess":"motaz4","fideId":"54271460","fideManual":{"blitz":1950,"rapid":2101,"standard":1924},"createdAt":1795176683784},
+      {"id":"player_1795183400249","name":"Ahmed Elmogy","chessCom":"Ahmed_Elmogy","lichess":"Ahmed_Elmogy","fideId":"10668594","fideManual":{"standard":null,"rapid":1690,"blitz":null},"createdAt":1795183400249},
+      {"id":"player_2","name":"Ali Ayman","chessCom":"RisingAA","lichess":"AliAyman127","fideId":"54260647","fideManual":{"standard":1961,"blitz":1942,"rapid":2075},"createdAt":1795260624151},
+      {"id":"player_1795260884955","name":"Abdelrahman Samir","chessCom":"Skellig_505","lichess":"Skellig_505","fideId":"","fideManual":{"standard":null,"rapid":null,"blitz":null},"createdAt":1795260884955},
+      {"id":"player_1795261097342","name":"Mostafa Khaled","chessCom":"Mostafa-K7aled","lichess":"Mostafak7aled","fideId":"","fideManual":{"blitz":null,"rapid":null,"standard":null},"createdAt":1795261097342},
+      {"id":"player_1795261233887","name":"Abdelrahman Anwar","chessCom":"kingkira2","lichess":"kingkira2","fideId":"555023614","fideManual":{"rapid":1670,"standard":null,"blitz":null},"createdAt":1795261233887},
+      {"id":"player_1795261287881","name":"Adham Tosson","chessCom":"adham_333","lichess":"Adham_3333","fideId":"","fideManual":{"standard":null,"blitz":null,"rapid":null},"createdAt":1795261287881},
+      {"id":"player_1795261347163","name":"omar Rashad","chessCom":"omarrashad_2","lichess":"Iconicomar_7","fideId":"","fideManual":{"standard":null,"blitz":null,"rapid":null},"createdAt":1795261347163},
+      {"id":"player_1795261711797","name":"Ahmed Omar","chessCom":"AboOmar0-0","lichess":"AboOmar10","fideId":"54255414","fideManual":{"blitz":null,"standard":null,"rapid":1901},"createdAt":1795261711797},
+      {"id":"player_1795261810114","name":"Ward Mohamed","chessCom":"VoidSpectre-3000","lichess":"WRD-XR7","fideId":"10691766","fideManual":{"standard":1543,"rapid":1851,"blitz":1726},"createdAt":1795261810114},
+      {"id":"player_1795261854208","name":"Marwan Osama","chessCom":"ERROR_578","lichess":"x_ERROR_001","fideId":"","fideManual":{"standard":null,"rapid":null,"blitz":null},"createdAt":1795261854208},
+      {"id":"player_1795261990749","name":"Youssef Abdel Hadi","chessCom":"yousef_dragon333","lichess":"yousef_dragon","fideId":"54297915","fideManual":{"standard":1931,"blitz":1992,"rapid":2002},"createdAt":1795261990749},
+      {"id":"player_1795262034238","name":"Al-Baraa Mahmoud","chessCom":"Ab4x0","lichess":"Berox1412","fideId":"","fideManual":{"rapid":null,"blitz":null,"standard":null},"createdAt":1795262034238},
+      {"id":"player_1795262147311","name":"Osama Abdo","chessCom":"The_Syrian_Cutthroat","lichess":"Osama_the_first65","fideId":"","fideManual":{"standard":null,"rapid":null,"blitz":null},"createdAt":1795262147311},
+      {"id":"player_1795262241359","name":"Yousef Sallam","chessCom":"P_patrix","lichess":"P_for_patrix","fideId":"54296463","fideManual":{"standard":1633,"blitz":1665,"rapid":1686},"createdAt":1795262241359},
+      {"id":"player_1795262340457","name":"Jad Helael","chessCom":"Jad_helael","lichess":"JordanianFisher","fideId":"8124043","fideManual":{"blitz":null,"rapid":1610,"standard":null},"createdAt":1795262340457},
+      {"id":"player_1795262681496","name":"Mmahmud Samy","chessCom":"GMmahmud","lichess":"gmsamy2","fideId":"54267994","fideManual":{"standard":1915,"rapid":1909,"blitz":1919},"createdAt":1795262681496},
+      {"id":"player_1795262799817","name":"Ahmed Yousef","chessCom":"CrounlessGm","lichess":"DelltaZero","fideId":"54283647","fideManual":{"blitz":null,"rapid":1758,"standard":1725},"createdAt":1795262799817},
+      {"id":"player_1795263048825","name":"Kareem Osama","chessCom":"Kareem_Osama2007","lichess":"Kareem_Osama2007","fideId":"54248205","fideManual":{"standard":1849,"blitz":2008,"rapid":2046},"createdAt":1795263048825},
+      {"id":"player_1795263190957","name":"Zyad El-Mowafy","chessCom":"MRZZ_chess","lichess":"MRZZ25","fideId":"555007031","fideManual":{"blitz":1581,"rapid":1630,"standard":null},"createdAt":1795263190957},
+      {"id":"player_1795263271432","name":"Montaser","chessCom":"the_0_prepsguy","lichess":"montaser7","fideId":"","fideManual":{"rapid":null,"blitz":null,"standard":null},"createdAt":1795263271432},
+      {"id":"player_1795263656956","name":"Burhan Fadil","chessCom":"Brhanof_Fm","lichess":"pp1zr1","fideId":"4848713","fideManual":{"rapid":1929,"blitz":null,"standard":1788},"createdAt":1795263656956},
+      {"id":"player_1795268236139","name":"Keroles Hesham","chessCom":"KerolesHesham","lichess":"kerolesHesham","fideId":"555001130","fideManual":{"standard":null,"blitz":null,"rapid":1597},"createdAt":1795268236139},
+      {"id":"player_1795268284926","name":"Ahmed Saad","chessCom":"Ahmed_Saad_X7","lichess":"AHMED_SAAD_2024","fideId":"","fideManual":{"rapid":null,"blitz":null,"standard":null},"createdAt":1795268284926},
+      {"id":"player_1795268364736","name":"Hossam Walid","chessCom":"Liverpool556","lichess":"chessbase16_theory","fideId":"10699384","fideManual":{"standard":1781,"rapid":1884,"blitz":1893},"createdAt":1795268364736},
+      {"id":"player_1795268947715","name":"Felo Amir","chessCom":"Felo_Amir","lichess":"Blitz_Curler","fideId":"54286930","fideManual":{"blitz":null,"rapid":1764,"standard":null},"createdAt":1795268947715},
+      {"id":"player_1795269077692","name":"Gebreel Essam","chessCom":"Gebreel_1","lichess":"Gebrel","fideId":"555017797","fideManual":{"blitz":1890,"rapid":null,"standard":null},"createdAt":1795269077692},
+      {"id":"player_1795269188171","name":"Ahmed Samir","chessCom":"You_have_no_chance1","lichess":"mo_ghaly12","fideId":"","fideManual":{"blitz":null,"rapid":null,"standard":null},"createdAt":1795269188171},
+      {"id":"player_1795271262727","name":"Ahmed Waleed","chessCom":"HikaruMakarona","lichess":"HikaruMakarona","fideId":"","fideManual":{"rapid":null,"standard":null,"blitz":null},"createdAt":1795271262727},
+      {"id":"player_1795271345364","name":"Anas Yasser","chessCom":"Anas-Elvanan","lichess":"AnasYasser123","fideId":"","fideManual":{"standard":null,"blitz":null,"rapid":null},"createdAt":1795271345364},
+      {"id":"player_1795271675522","name":"Youssef Ghazi","chessCom":"y0uSSeF_GHAZI","lichess":"Y_aboghazi","fideId":"","fideManual":{"standard":null,"blitz":null,"rapid":null},"createdAt":1795271675522},
+      {"id":"player_1795278037423","name":"Abdalluh Khaled","chessCom":"ABDALLUHKHZXC","lichess":"abdalluhkh","fideId":"","fideManual":{"standard":null,"blitz":null,"rapid":null},"createdAt":1795278037423}
+    ];
+
+    /**
+     * =========================================================================
+     * 2. STORAGE KEYS, ADMIN PIN & 14 LEADERBOARD VIEWS
+     * =========================================================================
+     */
+    const ROSTER_STORAGE_KEY = 'live_chess_group_roster_v2';
+    const PIN_STORAGE_KEY = 'live_chess_group_admin_pin_v2';
+    const SETTINGS_PREF_KEY = 'live_chess_prefs_v2';
+    const DEFAULT_ADMIN_PIN = '1412';
+
+    const VIEW_CATEGORIES = [
+      {
+        id: 'master_table',
+        label: 'الجدول الشامل (الكل)',
+        icon: '📊',
+        tabs: [
+          {
+            id: 'all_table',
+            label: 'الجدول الشامل (الكل)',
+            colTitle: 'متوسط الكل (6)',
+            desc: 'عرض شامل لجميع تقييمات Chess.com و Lichess و FIDE جنباً إلى جنب مرتبة حسب المتوسط العام'
+          }
+        ]
+      },
+      {
+        id: 'overalls',
+        label: 'المتوسطات الشاملة',
+        icon: '🏆',
+        tabs: [
+          {
+            id: 'all_avg',
+            label: 'متوسط الـ 6 تقييمات',
+            colTitle: 'متوسط الكل (6)',
+            desc: 'متوسط التقييمات المتاحة من الفروع الستة (Chess.com + Lichess)'
+          },
+          {
+            id: 'cc_avg',
+            label: 'متوسط Chess.com',
+            colTitle: 'متوسط Chess.com',
+            desc: 'متوسط التقييمات المتاحة للاعب على موقع Chess.com'
+          },
+          {
+            id: 'li_avg',
+            label: 'متوسط Lichess',
+            colTitle: 'متوسط Lichess',
+            desc: 'متوسط التقييمات المتاحة للاعب على موقع Lichess'
+          },
+          {
+            id: 'fide_avg',
+            label: 'متوسط FIDE',
+            colTitle: 'متوسط FIDE',
+            desc: 'متوسط تقييمات الاتحاد الدولي المتاحة (Classic / Rapid / Blitz)'
+          }
+        ]
+      },
+      {
+        id: 'chesscom',
+        label: 'Chess.com',
+        icon: '♟️',
+        tabs: [
+          { id: 'cc_rapid', label: 'Rapid', colTitle: 'Chess.com Rapid', desc: 'الترتيب الحي لتقييم Rapid على Chess.com' },
+          { id: 'cc_blitz', label: 'Blitz', colTitle: 'Chess.com Blitz', desc: 'الترتيب الحي لتقييم Blitz على Chess.com' },
+          { id: 'cc_bullet', label: 'Bullet', colTitle: 'Chess.com Bullet', desc: 'الترتيب الحي لتقييم Bullet على Chess.com' }
+        ]
+      },
+      {
+        id: 'lichess',
+        label: 'Lichess',
+        icon: '♞',
+        tabs: [
+          { id: 'li_rapid', label: 'Rapid', colTitle: 'Lichess Rapid', desc: 'الترتيب الحي لتقييم Rapid على Lichess' },
+          { id: 'li_blitz', label: 'Blitz', colTitle: 'Lichess Blitz', desc: 'الترتيب الحي لتقييم Blitz على Lichess' },
+          { id: 'li_bullet', label: 'Bullet', colTitle: 'Lichess Bullet', desc: 'الترتيب الحي لتقييم Bullet على Lichess' }
+        ]
+      },
+      {
+        id: 'fide',
+        label: 'FIDE',
+        icon: '🌍',
+        tabs: [
+          { id: 'fide_classic', label: 'Classic (Standard)', colTitle: 'FIDE Classic', desc: 'التصنيف الدولي الكلاسيك الرسمي' },
+          { id: 'fide_rapid', label: 'Rapid', colTitle: 'FIDE Rapid', desc: 'التصنيف الدولي السريع الرسمي' },
+          { id: 'fide_blitz', label: 'Blitz', colTitle: 'FIDE Blitz', desc: 'التصنيف الدولي الخاطف الرسمي' }
+        ]
+      }
+    ];
+
+    const appState = {
+      roster: [],
+      ratings: {},
+      baselineRatings: {},
+      activeCategoryId: 'master_table',
+      activeViewId: 'all_table',
+      customSortCol: null,
+      includeProvisional: true,
+      isAdmin: false,
+      adminPin: DEFAULT_ADMIN_PIN,
+      isFetching: false,
+      hasInitialLoadCompleted: false,
+      autoRefreshEnabled: true,
+      countdownSeconds: 60,
+      countdownTimerId: null
+    };
+
+    /**
+     * =========================================================================
+     * 3. INITIALIZATION & LOCALSTORAGE PERSISTENCE (v2)
+     * =========================================================================
+     */
+    function initApp() {
+      // Load saved Admin PIN if changed
+      try {
+        const savedPin = localStorage.getItem(PIN_STORAGE_KEY);
+        if (savedPin && savedPin.trim().length >= 4) {
+          appState.adminPin = savedPin.trim();
+        }
+      } catch (e) {}
+
+      // Load UI preference
+      try {
+        const prefs = JSON.parse(localStorage.getItem(SETTINGS_PREF_KEY) || '{}');
+        if (typeof prefs.includeProvisional === 'boolean') {
+          appState.includeProvisional = prefs.includeProvisional;
+          document.getElementById('toggle-provisional').checked = appState.includeProvisional;
+        }
+      } catch (e) {}
+
+      // Load Roster from v2 localStorage or initialize cleanly with all 40 DEFAULT_PLAYERS
+      try {
+        const savedRosterRaw = localStorage.getItem(ROSTER_STORAGE_KEY);
+        if (savedRosterRaw) {
+          const parsed = JSON.parse(savedRosterRaw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            appState.roster = parsed;
+          } else {
+            appState.roster = JSON.parse(JSON.stringify(DEFAULT_PLAYERS));
+            saveRosterToStorage();
+          }
+        } else {
+          appState.roster = JSON.parse(JSON.stringify(DEFAULT_PLAYERS));
+          saveRosterToStorage();
+        }
+      } catch (e) {
+        appState.roster = JSON.parse(JSON.stringify(DEFAULT_PLAYERS));
+      }
+
+      // Immediately seed FIDE baseline ratings from fideManual so they appear instantaneously
+      appState.roster.forEach(p => {
+        ensurePlayerRatingStruct(p.id);
+        applyManualFideBaseline(p);
+      });
+
+      updateRosterCountUI();
+      renderNavigationTabs();
+      renderSummaryCards();
+      renderLeaderboard();
+      startAutoRefreshLoop();
+      fetchAllLiveRatings(false);
+    }
+
+    function saveRosterToStorage() {
+      try {
+        localStorage.setItem(ROSTER_STORAGE_KEY, JSON.stringify(appState.roster));
+      } catch (e) {
+        console.warn('Could not save roster to localStorage:', e);
+      }
+      updateRosterCountUI();
+    }
+
+    function ensurePlayerRatingStruct(playerId) {
+      if (!appState.ratings[playerId]) {
+        appState.ratings[playerId] = {
+          cc: { rapid: null, blitz: null, bullet: null },
+          li: { rapid: null, blitz: null, bullet: null },
+          fide: { standard: null, rapid: null, blitz: null }
+        };
+      }
+    }
+
+    function applyManualFideBaseline(player) {
+      if (!player.fideManual) return;
+      ensurePlayerRatingStruct(player.id);
+      const f = appState.ratings[player.id].fide;
+      if (typeof player.fideManual.standard === 'number') {
+        f.standard = { rating: Number(player.fideManual.standard), prov: false };
+      }
+      if (typeof player.fideManual.rapid === 'number') {
+        f.rapid = { rating: Number(player.fideManual.rapid), prov: false };
+      }
+      if (typeof player.fideManual.blitz === 'number') {
+        f.blitz = { rating: Number(player.fideManual.blitz), prov: false };
+      }
+    }
+
+    function updateRosterCountUI() {
+      const count = appState.roster.length;
+      const badge = document.getElementById('roster-count-badge');
+      if (badge) badge.textContent = count;
+      const modalBadge = document.getElementById('modal-roster-count');
+      if (modalBadge) modalBadge.textContent = count;
+      const pillCount = document.getElementById('pill-roster-count');
+      if (pillCount) pillCount.textContent = `${count} ✓`;
+    }
+
+    /**
+     * =========================================================================
+     * 4. ADMIN PIN AUTHENTICATION & LOCK / UNLOCK CONTROLS
+     * =========================================================================
+     */
+    function openAdminLoginModal() {
+      document.getElementById('admin-pin-input').value = '';
+      document.getElementById('admin-login-modal').classList.remove('hidden');
+      document.getElementById('admin-login-modal').classList.add('flex');
+      setTimeout(() => document.getElementById('admin-pin-input').focus(), 80);
+    }
+
+    function closeAdminLoginModal() {
+      document.getElementById('admin-login-modal').classList.add('hidden');
+      document.getElementById('admin-login-modal').classList.remove('flex');
+    }
+
+    function handleAdminLoginSubmit(event) {
+      event.preventDefault();
+      const entered = document.getElementById('admin-pin-input').value.trim();
+      if (entered === appState.adminPin) {
+        appState.isAdmin = true;
+        closeAdminLoginModal();
+        updateAdminModeUI();
+        showToast('تم فتح وضع المشرف بنجاح!', 'success');
+      } else {
+        showToast('الرقم السري غير صحيح!', 'error');
+        document.getElementById('admin-pin-input').value = '';
+        document.getElementById('admin-pin-input').focus();
+      }
+    }
+
+    function lockAdminMode() {
+      appState.isAdmin = false;
+      closeRosterModal();
+      updateAdminModeUI();
+      showToast('تم قفل وضع المشرف والعودة لوضع المشاهدة.', 'info');
+    }
+
+    function updateAdminModeUI() {
+      const loginBtn = document.getElementById('btn-admin-login');
+      const adminControls = document.getElementById('admin-header-controls');
+      const roleBadge = document.getElementById('role-status-badge');
+
+      if (appState.isAdmin) {
+        loginBtn.classList.add('hidden');
+        adminControls.classList.remove('hidden');
+        adminControls.classList.add('flex');
+        roleBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/40';
+        roleBadge.textContent = '🔓 وضع المشرف (Admin)';
+      } else {
+        loginBtn.classList.remove('hidden');
+        adminControls.classList.add('hidden');
+        adminControls.classList.remove('flex');
+        roleBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-gray-800 text-gray-300 border border-gray-700';
+        roleBadge.textContent = '👁️ وضع المشاهدة';
+      }
+    }
+
+    function handleChangeAdminPin(event) {
+      event.preventDefault();
+      if (!appState.isAdmin) return;
+      const newPin = document.getElementById('new-pin-input').value.trim();
+      if (newPin.length < 4) {
+        showToast('يجب أن يتكون الرمز الجديد من 4 خانات على الأقل', 'error');
+        return;
+      }
+
+      appState.adminPin = newPin;
+      try {
+        localStorage.setItem(PIN_STORAGE_KEY, newPin);
+      } catch (e) {}
+      document.getElementById('new-pin-input').value = '';
+      showToast('تم تحديث رمز المشرف السري بنجاح!', 'success');
+    }
+
+    /**
+     * =========================================================================
+     * 5. LIVE API FETCHING ENGINE (LICHESS BULK, CHESS.COM STAGGERED, FIDE)
+     * =========================================================================
+     */
+    function setProgress(percent) {
+      const bar = document.getElementById('fetch-progress-bar');
+      if (bar) bar.style.width = `${Math.min(100, Math.max(5, percent))}%`;
+    }
+
+    async function fetchAllLiveRatings(isManual = false) {
+      if (appState.isFetching) return;
+      appState.isFetching = true;
+      appState.countdownSeconds = 60;
+
+      const totalCount = appState.roster.length;
+      const spinner = document.getElementById('refresh-spinner');
+      const statusDot = document.getElementById('status-indicator-dot');
+      const statusMsg = document.getElementById('live-status-message');
+
+      spinner.classList.add('animate-spin');
+      statusDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse';
+      statusMsg.textContent = `جاري تحديث ${totalCount} لاعباً...`;
+      setProgress(15);
+
+      setPlatformPill('pill-chesscom', 'loading', '⏳');
+      setPlatformPill('pill-lichess', 'loading', '⏳');
+      setPlatformPill('pill-fide', 'loading', '⏳');
+
+      appState.roster.forEach(p => {
+        ensurePlayerRatingStruct(p.id);
+        applyManualFideBaseline(p);
+      });
+
+      // Step 1: Bulk fetch Lichess immediately (1 request for all 40 users)
+      const liPromise = fetchLichessLive().then(ok => {
+        setPlatformPill('pill-lichess', ok ? 'ok' : 'warn', ok ? '✓' : '!');
+        setProgress(35);
+        renderSummaryCards();
+        renderLeaderboard();
+        return ok;
+      });
+
+      // Step 2: Batched concurrent Chess.com fetch (batches of 6 with 350ms stagger)
+      const ccPromise = fetchChessComLive((completed, total) => {
+        const pct = 35 + Math.round((completed / Math.max(1, total)) * 55);
+        setProgress(pct);
+        statusMsg.textContent = `جاري تحديث ${totalCount} لاعباً... (${completed}/${total} Chess.com)`;
+        renderSummaryCards();
+        renderLeaderboard();
+      }).then(ok => {
+        setPlatformPill('pill-chesscom', ok ? 'ok' : 'warn', ok ? '✓' : '!');
+        return ok;
+      });
+
+      // Step 3: FIDE Live check (preserving fideManual baseline)
+      const fidePromise = fetchFideLive().then(ok => {
+        setPlatformPill('pill-fide', ok ? 'ok' : 'warn', ok ? '✓' : '!');
+        return ok;
+      });
+
+      await Promise.all([liPromise, ccPromise, fidePromise]);
+
+      setProgress(100);
+
+      if (!appState.hasInitialLoadCompleted) {
+        appState.baselineRatings = JSON.parse(JSON.stringify(appState.ratings));
+        appState.hasInitialLoadCompleted = true;
+      }
+
+      const nowStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 live-dot';
+      statusMsg.textContent = `متصل لايف (${totalCount} لاعباً) • آخر تحديث: ${nowStr}`;
+      spinner.classList.remove('animate-spin');
+      appState.isFetching = false;
+
+      renderSummaryCards();
+      renderLeaderboard();
+
+      if (isManual) {
+        showToast(`تم تحديث التقييمات الحية لـ ${totalCount} لاعباً بنجاح!`, 'success');
+      }
+    }
+
+    function setPlatformPill(elementId, status, symbol) {
+      const pill = document.getElementById(elementId);
+      if (!pill) return;
+      const stateSpan = pill.querySelector('.pill-state');
+      stateSpan.textContent = symbol;
+
+      if (status === 'ok') {
+        pill.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 font-mono text-[11px] font-bold';
+      } else if (status === 'warn') {
+        pill.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-950/60 border border-amber-500/40 text-amber-300 font-mono text-[11px] font-bold';
+      } else {
+        pill.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0d1117] border border-gray-800 text-gray-400 font-mono text-[11px]';
+      }
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
+     * Chess.com Live API: Batches of 6 with 350ms stagger to prevent HTTP 429
+     */
+    async function fetchChessComLive(onBatchProgress) {
+      const players = appState.roster.filter(p => p.chessCom && p.chessCom.trim() !== '');
+      if (players.length === 0) return true;
+
+      let anySuccess = false;
+      let completedCount = 0;
+      const BATCH_SIZE = 6;
+      const STAGGER_MS = 350;
+
+      for (let i = 0; i < players.length; i += BATCH_SIZE) {
+        const batch = players.slice(i, i + BATCH_SIZE);
+        const results = await Promise.allSettled(
+          batch.map(async (player) => {
+            const cleanUser = player.chessCom.trim().toLowerCase();
+            const url = `https://api.chess.com/pub/player/${encodeURIComponent(cleanUser)}/stats`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+
+            ensurePlayerRatingStruct(player.id);
+            const target = appState.ratings[player.id].cc;
+
+            const rapidVal = data.chess_rapid?.last?.rating;
+            if (typeof rapidVal === 'number') {
+              const games = (data.chess_rapid.record?.win || 0) + (data.chess_rapid.record?.loss || 0) + (data.chess_rapid.record?.draw || 0);
+              const isProv = (data.chess_rapid.last.rd && data.chess_rapid.last.rd > 110) || games < 5;
+              target.rapid = { rating: rapidVal, prov: Boolean(isProv) };
+            }
+
+            const blitzVal = data.chess_blitz?.last?.rating;
+            if (typeof blitzVal === 'number') {
+              const games = (data.chess_blitz.record?.win || 0) + (data.chess_blitz.record?.loss || 0) + (data.chess_blitz.record?.draw || 0);
+              const isProv = (data.chess_blitz.last.rd && data.chess_blitz.last.rd > 110) || games < 5;
+              target.blitz = { rating: blitzVal, prov: Boolean(isProv) };
+            }
+
+            const bulletVal = data.chess_bullet?.last?.rating;
+            if (typeof bulletVal === 'number') {
+              const games = (data.chess_bullet.record?.win || 0) + (data.chess_bullet.record?.loss || 0) + (data.chess_bullet.record?.draw || 0);
+              const isProv = (data.chess_bullet.last.rd && data.chess_bullet.last.rd > 110) || games < 5;
+              target.bullet = { rating: bulletVal, prov: Boolean(isProv) };
+            }
+
+            return true;
+          })
+        );
+
+        if (results.some(r => r.status === 'fulfilled')) {
+          anySuccess = true;
+        }
+
+        completedCount += batch.length;
+        if (onBatchProgress) {
+          onBatchProgress(completedCount, players.length);
+        }
+
+        if (i + BATCH_SIZE < players.length) {
+          await sleep(STAGGER_MS);
+        }
+      }
+
+      return anySuccess;
+    }
+
+    /**
+     * Lichess Live API: Bulk POST /api/users + individual GET fallback
+     */
+    async function fetchLichessLive() {
+      const players = appState.roster.filter(p => p.lichess && p.lichess.trim() !== '');
+      if (players.length === 0) return true;
+
+      const foundUsernames = new Set();
+      const userDataByLower = {};
+
+      try {
+        const usernames = players.map(p => p.lichess.trim());
+        const res = await fetch('https://lichess.org/api/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain',
+            'Accept': 'application/json'
+          },
+          body: usernames.join(',')
+        });
+
+        if (res.ok) {
+          const list = await res.json();
+          if (Array.isArray(list)) {
+            list.forEach(u => {
+              if (u && u.id) {
+                userDataByLower[u.id.toLowerCase()] = u;
+                foundUsernames.add(u.id.toLowerCase());
+              }
+              if (u && u.username) {
+                userDataByLower[u.username.toLowerCase()] = u;
+                foundUsernames.add(u.username.toLowerCase());
+              }
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Lichess bulk endpoint warning, falling back to GET:', e);
+      }
+
+      const missedPlayers = players.filter(p => !foundUsernames.has(p.lichess.trim().toLowerCase()));
+      if (missedPlayers.length > 0) {
+        await Promise.allSettled(
+          missedPlayers.map(async (p) => {
+            const cleanUser = p.lichess.trim();
+            const res = await fetch(`https://lichess.org/api/user/${encodeURIComponent(cleanUser)}`, {
+              headers: { 'Accept': 'application/json' }
+            });
+            if (!res.ok) return;
+            const u = await res.json();
+            if (u && (u.id || u.username)) {
+              userDataByLower[cleanUser.toLowerCase()] = u;
+            }
+          })
+        );
+      }
+
+      let anySuccess = false;
+      players.forEach(player => {
+        const u = userDataByLower[player.lichess.trim().toLowerCase()];
+        if (!u || !u.perfs) return;
+        anySuccess = true;
+
+        ensurePlayerRatingStruct(player.id);
+        const target = appState.ratings[player.id].li;
+
+        ['rapid', 'blitz', 'bullet'].forEach(mode => {
+          const perf = u.perfs[mode];
+          if (perf && typeof perf.rating === 'number' && (perf.games || 0) > 0) {
+            target[mode] = {
+              rating: perf.rating,
+              prov: Boolean(perf.prov)
+            };
+          }
+        });
+      });
+
+      return anySuccess;
+    }
+
+    /**
+     * FIDE Live Ratings: Immediately uses fideManual baseline & attempts live API/proxy update
+     */
+    async function fetchFideLive() {
+      appState.roster.forEach(p => applyManualFideBaseline(p));
+
+      const playersWithFide = appState.roster.filter(
+        p => p.fideId && String(p.fideId).trim() !== '' && String(p.fideId).toLowerCase() !== 'null'
+      );
+
+      if (playersWithFide.length === 0) return true;
+
+      let anyLiveOrBaseline = appState.roster.some(
+        p => p.fideManual && (p.fideManual.standard || p.fideManual.rapid || p.fideManual.blitz)
+      );
+
+      const BATCH_SIZE = 6;
+      for (let i = 0; i < playersWithFide.length; i += BATCH_SIZE) {
+        const batch = playersWithFide.slice(i, i + BATCH_SIZE);
+        await Promise.allSettled(
+          batch.map(async (player) => {
+            const fideId = String(player.fideId).trim();
+            try {
+              const fetched = await fetchSingleFideWithRace(fideId);
+              ensurePlayerRatingStruct(player.id);
+              const target = appState.ratings[player.id].fide;
+
+              if (fetched.standard) target.standard = { rating: fetched.standard, prov: false };
+              if (fetched.rapid) target.rapid = { rating: fetched.rapid, prov: false };
+              if (fetched.blitz) target.blitz = { rating: fetched.blitz, prov: false };
+
+              if (fetched.standard || fetched.rapid || fetched.blitz) {
+                anyLiveOrBaseline = true;
+              }
+            } catch (err) {
+              // Keep fideManual baseline intact
+              applyManualFideBaseline(player);
+            }
+          })
+        );
+      }
+
+      return anyLiveOrBaseline;
+    }
+
+    function fetchWithTimeout(url, timeoutMs = 6500) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+    }
+
+    async function fetchSingleFideWithRace(fideId) {
+      const profileUrl = `https://ratings.fide.com/profile/${encodeURIComponent(fideId)}`;
+
+      const source1 = async () => {
+        const res = await fetchWithTimeout(
+          `https://fide-api.vercel.app/player_info/?fide_id=${encodeURIComponent(fideId)}&history=false`,
+          6500
+        );
+        if (!res.ok) throw new Error('Source 1 failed');
+        const data = await res.json();
+        const standard = parseInt(data.classical_rating ?? data.standard_elo ?? data.classic ?? data.standard, 10) || null;
+        const rapid = parseInt(data.rapid_rating ?? data.rapid_elo ?? data.rapid, 10) || null;
+        const blitz = parseInt(data.blitz_rating ?? data.blitz_elo ?? data.blitz, 10) || null;
+        if (!standard && !rapid && !blitz) throw new Error('No numeric ratings');
+        return { standard, rapid, blitz };
+      };
+
+      const source2 = async () => {
+        const res = await fetchWithTimeout(
+          `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(profileUrl)}`,
+          6500
+        );
+        if (!res.ok) throw new Error('Source 2 failed');
+        const html = await res.text();
+        return parseFideProfileHtml(html);
+      };
+
+      return Promise.any([source1(), source2()]);
+    }
+
+    function parseFideProfileHtml(html) {
+      if (!html || html.length < 200) throw new Error('Invalid HTML');
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+
+      const extractRatingNum = (el) => {
+        if (!el) return null;
+        const txt = el.textContent.trim();
+        if (/not\s*rated/i.test(txt)) return null;
+        const m = txt.match(/\b([1-2]\d{3})\b/);
+        return m ? parseInt(m[1], 10) : null;
+      };
+
+      const standard = extractRatingNum(doc.querySelector('.profile-top-rating-data_gray'));
+      const rapid = extractRatingNum(doc.querySelector('.profile-top-rating-data_red'));
+      const blitz = extractRatingNum(doc.querySelector('.profile-top-rating-data_blue'));
+
+      if (!standard && !rapid && !blitz) {
+        throw new Error('No numeric FIDE ratings parsed');
+      }
+
+      return { standard, rapid, blitz };
+    }
+
+    /**
+     * =========================================================================
+     * 6. AUTO-REFRESH TIMER (EVERY 60 SECONDS)
+     * =========================================================================
+     */
+    function startAutoRefreshLoop() {
+      if (appState.countdownTimerId) clearInterval(appState.countdownTimerId);
+      appState.countdownTimerId = setInterval(() => {
+        if (!appState.autoRefreshEnabled || appState.isFetching) return;
+        appState.countdownSeconds--;
+        if (appState.countdownSeconds <= 0) {
+          appState.countdownSeconds = 60;
+          fetchAllLiveRatings(false);
+        }
+        updateCountdownUI();
+      }, 1000);
+    }
+
+    function toggleAutoRefresh() {
+      appState.autoRefreshEnabled = document.getElementById('auto-refresh-toggle').checked;
+      if (appState.autoRefreshEnabled) {
+        appState.countdownSeconds = 60;
+      }
+      updateCountdownUI();
+    }
+
+    function updateCountdownUI() {
+      const el = document.getElementById('auto-refresh-countdown');
+      if (!el) return;
+      el.textContent = appState.autoRefreshEnabled ? `(${appState.countdownSeconds}s)` : '(متوقف)';
+      el.className = appState.autoRefreshEnabled
+        ? 'font-mono text-[11px] text-emerald-400 font-bold'
+        : 'font-mono text-[11px] text-gray-500';
+    }
+
+    /**
+     * =========================================================================
+     * 7. AVERAGES, RANKINGS, COLUMN SORTING & POINT GAPS ENGINE
+     * =========================================================================
+     */
+    function filterValidRating(entry) {
+      if (!entry || typeof entry.rating !== 'number') return null;
+      if (!appState.includeProvisional && entry.prov) return null;
+      return entry;
+    }
+
+    function computeAverage(entries, totalFormats) {
+      const valid = entries.map(filterValidRating).filter(Boolean);
+      if (valid.length === 0) return null;
+      const sum = valid.reduce((acc, item) => acc + item.rating, 0);
+      return {
+        rating: Math.round(sum / valid.length),
+        count: valid.length,
+        total: totalFormats,
+        isAvg: true
+      };
+    }
+
+    function getMetricForView(playerId, viewId, sourceMap = appState.ratings) {
+      const data = sourceMap[playerId];
+      if (!data) return null;
+
+      switch (viewId) {
+        case 'all_table':
+        case 'all_avg':
+          return computeAverage([
+            data.cc?.rapid, data.cc?.blitz, data.cc?.bullet,
+            data.li?.rapid, data.li?.blitz, data.li?.bullet
+          ], 6);
+
+        case 'cc_avg':
+          return computeAverage([data.cc?.rapid, data.cc?.blitz, data.cc?.bullet], 3);
+
+        case 'li_avg':
+          return computeAverage([data.li?.rapid, data.li?.blitz, data.li?.bullet], 3);
+
+        case 'cc_rapid': return filterValidRating(data.cc?.rapid);
+        case 'cc_blitz': return filterValidRating(data.cc?.blitz);
+        case 'cc_bullet': return filterValidRating(data.cc?.bullet);
+
+        case 'li_rapid': return filterValidRating(data.li?.rapid);
+        case 'li_blitz': return filterValidRating(data.li?.blitz);
+        case 'li_bullet': return filterValidRating(data.li?.bullet);
+
+        case 'fide_avg':
+          return computeAverage([data.fide?.standard, data.fide?.rapid, data.fide?.blitz], 3);
+
+        case 'fide_classic': return filterValidRating(data.fide?.standard);
+        case 'fide_rapid': return filterValidRating(data.fide?.rapid);
+        case 'fide_blitz': return filterValidRating(data.fide?.blitz);
+
+        default:
+          return null;
+      }
+    }
+
+    function sortByColumn(colKey) {
+      if (colKey === 'active') {
+        appState.customSortCol = null;
+      } else {
+        appState.customSortCol = (appState.customSortCol === colKey) ? null : colKey;
+      }
+      renderLeaderboard();
+    }
+
+    function buildRankedRows(viewId) {
+      const effectiveSortKey = appState.customSortCol || viewId;
+      const isFideOnlyView = ['fide_avg', 'fide_classic', 'fide_rapid', 'fide_blitz'].includes(viewId);
+
+      // Baseline ranks for movement delta (±)
+      const baselineRanked = appState.roster
+        .map(p => ({ id: p.id, metric: getMetricForView(p.id, effectiveSortKey, appState.baselineRatings) }))
+        .filter(x => x.metric !== null)
+        .sort((a, b) => b.metric.rating - a.metric.rating);
+
+      const baselineRankMap = {};
+      baselineRanked.forEach((item, idx) => {
+        baselineRankMap[item.id] = idx + 1;
+      });
+
+      let rows = appState.roster.map(player => {
+        const activeMetric = getMetricForView(player.id, viewId, appState.ratings);
+        const sortMetric = getMetricForView(player.id, effectiveSortKey, appState.ratings);
+        const baseMetric = getMetricForView(player.id, viewId, appState.baselineRatings);
+        const ratingDelta = (activeMetric && baseMetric) ? (activeMetric.rating - baseMetric.rating) : 0;
+
+        return {
+          player,
+          metric: activeMetric,
+          sortMetric,
+          ratingDelta,
+          baselineRank: baselineRankMap[player.id] || null,
+          rank: null,
+          rankDelta: 0,
+          gapFromLeader: null,
+          gapFromAbove: null
+        };
+      });
+
+      // Exclude unrated players from FIDE-only rankings while keeping them in main overview
+      if (isFideOnlyView) {
+        rows = rows.filter(r => r.metric !== null);
+      }
+
+      // Sort descending by sortMetric; unrated go to bottom
+      rows.sort((a, b) => {
+        if (a.sortMetric && b.sortMetric) return b.sortMetric.rating - a.sortMetric.rating;
+        if (a.sortMetric && !b.sortMetric) return -1;
+        if (!a.sortMetric && b.sortMetric) return 1;
+        return a.player.name.localeCompare(b.player.name);
+      });
+
+      // Assign rank, rankDelta, gapFromLeader (#1), and gapFromAbove
+      let rankCounter = 0;
+      let leaderRating = null;
+      let prevPlayerRating = null;
+
+      rows.forEach(row => {
+        if (row.sortMetric) {
+          rankCounter++;
+          row.rank = rankCounter;
+          row.rankDelta = row.baselineRank ? (row.baselineRank - row.rank) : 0;
+
+          if (rankCounter === 1) {
+            leaderRating = row.sortMetric.rating;
+            row.gapFromLeader = 0;
+            row.gapFromAbove = 0;
+          } else {
+            row.gapFromLeader = row.sortMetric.rating - leaderRating;
+            row.gapFromAbove = row.sortMetric.rating - prevPlayerRating;
+          }
+          prevPlayerRating = row.sortMetric.rating;
+        }
+      });
+
+      return rows;
+    }
+
+    /**
+     * =========================================================================
+     * 8. UI RENDERING (TABS, SUMMARY CARDS, TABLE & PODIUM BADGES)
+     * =========================================================================
+     */
+    function renderNavigationTabs() {
+      const primaryContainer = document.getElementById('primary-category-tabs');
+      const subContainer = document.getElementById('secondary-sub-tabs');
+      const descEl = document.getElementById('view-description');
+      const colHeaderEl = document.getElementById('col-active-title');
+
+      primaryContainer.innerHTML = VIEW_CATEGORIES.map(cat => {
+        const isActive = cat.id === appState.activeCategoryId;
+        return `
+          <button onclick="selectCategory('${cat.id}')" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer ${
+            isActive
+              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/50'
+              : 'bg-[#0d1117] text-gray-400 hover:text-gray-200 hover:bg-gray-800 border border-gray-800'
+          }">
+            <span>${cat.icon}</span>
+            <span>${cat.label}</span>
+          </button>
+        `;
+      }).join('');
+
+      const activeCat = VIEW_CATEGORIES.find(c => c.id === appState.activeCategoryId) || VIEW_CATEGORIES[0];
+      const activeViewObj = activeCat.tabs.find(t => t.id === appState.activeViewId) || activeCat.tabs[0];
+
+      if (activeCat.tabs.length > 1) {
+        subContainer.innerHTML = activeCat.tabs.map(tab => {
+          const isSubActive = tab.id === appState.activeViewId;
+          return `
+            <button onclick="selectSubView('${tab.id}')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+              isSubActive
+                ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/40'
+                : 'bg-[#0d1117] text-gray-400 hover:text-gray-200 border border-gray-800'
+            }">
+              ${tab.label}
+            </button>
+          `;
+        }).join('');
+      } else {
+        subContainer.innerHTML = `
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-bold">
+            ✨ العرض الافتراضي الشامل لجميع المنصات والمتوسطات (40 لاعباً)
+          </span>
+        `;
+      }
+
+      descEl.textContent = activeViewObj.desc;
+      colHeaderEl.textContent = activeViewObj.colTitle;
+    }
+
+    function selectCategory(catId) {
+      appState.activeCategoryId = catId;
+      appState.customSortCol = null;
+      const cat = VIEW_CATEGORIES.find(c => c.id === catId);
+      if (cat && cat.tabs.length > 0) {
+        appState.activeViewId = cat.tabs[0].id;
+      }
+      renderNavigationTabs();
+      renderLeaderboard();
+    }
+
+    function selectSubView(viewId) {
+      appState.activeViewId = viewId;
+      appState.customSortCol = null;
+      renderNavigationTabs();
+      renderLeaderboard();
+    }
+
+    function handleProvisionalChange() {
+      appState.includeProvisional = document.getElementById('toggle-provisional').checked;
+      try {
+        localStorage.setItem(SETTINGS_PREF_KEY, JSON.stringify({ includeProvisional: appState.includeProvisional }));
+      } catch (e) {}
+      renderSummaryCards();
+      renderLeaderboard();
+    }
+
+    function renderSummaryCards() {
+      const container = document.getElementById('summary-cards');
+      const cards = [
+        { viewId: 'all_avg', title: 'متصدر التصنيف الشامل', accent: 'emerald', icon: '👑' },
+        { viewId: 'cc_avg', title: 'متصدر Chess.com', accent: 'sky', icon: '♟️' },
+        { viewId: 'li_avg', title: 'متصدر Lichess', accent: 'teal', icon: '♞' },
+        { viewId: 'fide_avg', title: 'متصدر FIDE الدولي', accent: 'amber', icon: '🌍' }
+      ];
+
+      container.innerHTML = cards.map(c => {
+        const top = buildRankedRows(c.viewId).find(r => r.metric !== null);
+
+        const borderMap = {
+          emerald: 'border-emerald-500/30 hover:border-emerald-500/60',
+          sky: 'border-sky-500/30 hover:border-sky-500/60',
+          teal: 'border-teal-500/30 hover:border-teal-500/60',
+          amber: 'border-amber-500/30 hover:border-amber-500/60'
+        };
+        const textMap = {
+          emerald: 'text-emerald-400',
+          sky: 'text-sky-400',
+          teal: 'text-teal-400',
+          amber: 'text-amber-400'
+        };
+
+        const name = top ? top.player.name : 'جاري التحميل...';
+        const rating = top ? top.metric.rating : '—';
+        const badge = (top && top.metric.isAvg) ? `${top.metric.count}/${top.metric.total}` : '';
+
+        return `
+          <div onclick="jumpToView('${c.viewId}')" class="bg-[#161b22] border ${borderMap[c.accent]} rounded-2xl p-4 flex items-center justify-between transition cursor-pointer shadow-lg">
+            <div class="space-y-1 min-w-0">
+              <div class="text-[11px] font-bold text-gray-400 flex items-center gap-1.5">
+                <span>${c.icon}</span>
+                <span>${c.title}</span>
+              </div>
+              <div class="text-sm sm:text-base font-extrabold text-white truncate">${escapeHTML(name)}</div>
+            </div>
+            <div class="text-left shrink-0 mr-3">
+              <div class="text-xl sm:text-2xl font-extrabold tabular-nums ${textMap[c.accent]}">${rating}</div>
+              ${badge ? `<div class="text-[10px] font-mono text-gray-500 text-left">متوسط (${badge})</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function jumpToView(viewId) {
+      for (const cat of VIEW_CATEGORIES) {
+        if (cat.tabs.some(t => t.id === viewId)) {
+          appState.activeCategoryId = cat.id;
+          appState.activeViewId = viewId;
+          appState.customSortCol = null;
+          renderNavigationTabs();
+          renderLeaderboard();
+          break;
+        }
+      }
+    }
+
+    function renderLeaderboard() {
+      const tbody = document.getElementById('leaderboard-tbody');
+      const query = document.getElementById('search-input').value.trim().toLowerCase();
+
+      // Update sort indicator arrows
+      document.querySelectorAll('.sort-ind').forEach(span => {
+        span.textContent = (span.dataset.col === appState.customSortCol) ? '▼' : '';
+      });
+
+      let rows = buildRankedRows(appState.activeViewId);
+      if (query) {
+        rows = rows.filter(r =>
+          r.player.name.toLowerCase().includes(query) ||
+          (r.player.chessCom && r.player.chessCom.toLowerCase().includes(query)) ||
+          (r.player.lichess && r.player.lichess.toLowerCase().includes(query)) ||
+          (r.player.fideId && String(r.player.fideId).includes(query))
+        );
+      }
+
+      if (rows.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="18" class="py-12 text-center text-gray-500 text-sm">
+              لا يوجد لاعبون مصنفون في هذا التصنيف أو مطابقون لبحثك.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(row => {
+        const { player, metric, rank, rankDelta, ratingDelta, gapFromLeader, gapFromAbove } = row;
+        const rData = appState.ratings[player.id] || { cc: {}, li: {}, fide: {} };
+
+        // Podium Medals (🥇, 🥈, 🥉)
+        let rankBadge = `<span class="text-gray-500 font-mono">-</span>`;
+        let rowClasses = 'bg-[#161b22] hover:bg-[#1c232d] transition-colors';
+        let stickyBg = 'bg-[#161b22] group-hover:bg-[#1c232d]';
+
+        if (rank === 1) {
+          rankBadge = `<span class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-400/50 text-base shadow-sm" title="المركز الأول">🥇</span>`;
+          rowClasses = 'bg-amber-500/[0.05] hover:bg-amber-500/[0.09] rank-1-glow transition-colors';
+          stickyBg = 'bg-[#1b1f26]';
+        } else if (rank === 2) {
+          rankBadge = `<span class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-slate-300/15 text-slate-200 border border-slate-300/35 text-base" title="المركز الثاني">🥈</span>`;
+        } else if (rank === 3) {
+          rankBadge = `<span class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-orange-600/20 text-orange-300 border border-orange-500/35 text-base" title="المركز الثالث">🥉</span>`;
+        } else if (rank !== null) {
+          rankBadge = `<span class="font-mono text-gray-400 font-bold text-xs">${rank}</span>`;
+        }
+
+        // Rank movement indicator (±)
+        let rankMoveHTML = `<span class="text-gray-600 font-mono text-[11px]">•</span>`;
+        if (rankDelta > 0) {
+          rankMoveHTML = `<span class="text-emerald-400 font-mono text-[11px] font-bold">▲${rankDelta}</span>`;
+        } else if (rankDelta < 0) {
+          rankMoveHTML = `<span class="text-rose-400 font-mono text-[11px] font-bold">▼${Math.abs(rankDelta)}</span>`;
+        }
+
+        // Active Rating Cell + Session Rating Delta
+        let activeMetricHTML = appState.isFetching && !appState.hasInitialLoadCompleted
+          ? `<span class="inline-block h-4 w-10 bg-gray-800 rounded animate-pulse"></span>`
+          : `<span class="text-gray-600 font-mono text-xs">-</span>`;
+
+        if (metric) {
+          let deltaHTML = '';
+          if (ratingDelta > 0) {
+            deltaHTML = `<span class="inline-flex items-center text-[11px] font-mono font-bold text-emerald-400 mr-1.5">▲+${ratingDelta}</span>`;
+          } else if (ratingDelta < 0) {
+            deltaHTML = `<span class="inline-flex items-center text-[11px] font-mono font-bold text-rose-400 mr-1.5">▼${ratingDelta}</span>`;
+          }
+
+          const countBadge = metric.isAvg
+            ? `<span class="mr-1.5 px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 font-mono text-[10px]" title="عدد الفروع المحتسبة في المتوسط">${metric.count}/${metric.total}</span>`
+            : (metric.prov ? `<span class="text-amber-400 font-mono text-xs font-bold mr-0.5">?</span>` : '');
+
+          activeMetricHTML = `
+            <div class="inline-flex items-center justify-center">
+              <span class="text-base font-extrabold tabular-nums text-white">${metric.rating}</span>
+              ${countBadge}
+              ${deltaHTML}
+            </div>
+          `;
+        }
+
+        // Point gaps (#1 Leader & Player Above)
+        const leaderGapHTML = (rank === null)
+          ? `<span class="text-gray-600 font-mono text-xs">-</span>`
+          : (rank === 1
+              ? `<span class="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 font-mono text-[10px] font-bold">LEADER</span>`
+              : `<span class="font-mono text-xs text-gray-400">${gapFromLeader}</span>`);
+
+        const aboveGapHTML = (rank === null || rank === 1)
+          ? `<span class="text-gray-600 font-mono text-xs">-</span>`
+          : `<span class="font-mono text-xs text-gray-400">${gapFromAbove}</span>`;
+
+        // Individual Format & Platform Average Cells
+        const ccAvgObj = computeAverage([rData.cc?.rapid, rData.cc?.blitz, rData.cc?.bullet], 3);
+        const liAvgObj = computeAverage([rData.li?.rapid, rData.li?.blitz, rData.li?.bullet], 3);
+        const fideAvgObj = computeAverage([rData.fide?.standard, rData.fide?.rapid, rData.fide?.blitz], 3);
+
+        const renderFormatCell = (entry, highlightIds = [], rightBorder = false, isAvgCol = false, accentClass = '') => {
+          const valid = entry && entry.isAvg ? entry : filterValidRating(entry);
+          const activeCol = appState.customSortCol || appState.activeViewId;
+          const isHighlighted = highlightIds.includes(activeCol);
+          const borderCls = rightBorder ? 'border-l border-gray-800/80' : '';
+          const bgCls = isHighlighted ? 'bg-emerald-500/[0.1]' : (isAvgCol ? accentClass : '');
+
+          if (!valid) {
+            return `<td class="py-3.5 px-3 text-center font-mono text-xs text-gray-600 ${borderCls} ${bgCls}">-</td>`;
+          }
+
+          const suffix = valid.isAvg
+            ? `<span class="text-[10px] text-gray-500 mr-0.5">(${valid.count})</span>`
+            : (valid.prov ? '<span class="text-amber-400 font-bold">?</span>' : '');
+
+          return `
+            <td class="py-3.5 px-3 text-center tabular-nums text-xs sm:text-sm ${isHighlighted ? 'text-emerald-300 font-extrabold' : (isAvgCol ? 'font-bold text-gray-100' : 'text-gray-300')} ${borderCls} ${bgCls}">
+              ${valid.rating}${suffix}
+            </td>
+          `;
+        };
+
+        // Direct Profile Links
+        const ccBadge = player.chessCom
+          ? `<a href="https://www.chess.com/member/${encodeURIComponent(player.chessCom)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-500/10 hover:bg-sky-500/25 text-sky-400 text-[10px] font-mono transition" title="فتح حساب Chess.com">CC: ${escapeHTML(player.chessCom)}</a>`
+          : '';
+        const liBadge = player.lichess
+          ? `<a href="https://lichess.org/@/${encodeURIComponent(player.lichess)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/25 text-emerald-400 text-[10px] font-mono transition" title="فتح حساب Lichess">LI: ${escapeHTML(player.lichess)}</a>`
+          : '';
+        const fideBadge = (player.fideId && String(player.fideId).trim() !== '' && String(player.fideId).toLowerCase() !== 'null')
+          ? `<a href="https://ratings.fide.com/profile/${encodeURIComponent(player.fideId)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/25 text-amber-400 text-[10px] font-mono transition" title="فتح ملف FIDE الدولي">FIDE: ${escapeHTML(String(player.fideId))}</a>`
+          : '';
+
+        return `
+          <tr class="group ${rowClasses}">
+            <td class="py-3.5 px-3 text-center">${rankBadge}</td>
+            <td class="py-3.5 px-2 text-center">${rankMoveHTML}</td>
+            <td class="py-3.5 px-4 sticky-col ${stickyBg} border-l border-gray-800/80 transition-colors">
+              <div class="font-bold text-gray-100 text-sm">${escapeHTML(player.name)}</div>
+              <div class="flex flex-wrap items-center gap-1.5 mt-1">
+                ${ccBadge}
+                ${liBadge}
+                ${fideBadge}
+              </div>
+            </td>
+
+            <!-- Active Metric & Gaps -->
+            <td class="py-3.5 px-4 text-center bg-emerald-950/15">${activeMetricHTML}</td>
+            <td class="py-3.5 px-2.5 text-center bg-emerald-950/10">${leaderGapHTML}</td>
+            <td class="py-3.5 px-2.5 text-center bg-emerald-950/10 border-l border-gray-800/80">${aboveGapHTML}</td>
+
+            <!-- Chess.com (Rapid / Blitz / Bullet / Avg) -->
+            ${renderFormatCell(rData.cc?.rapid, ['cc_rapid', 'cc_avg', 'all_avg', 'all_table'])}
+            ${renderFormatCell(rData.cc?.blitz, ['cc_blitz', 'cc_avg', 'all_avg', 'all_table'])}
+            ${renderFormatCell(rData.cc?.bullet, ['cc_bullet', 'cc_avg', 'all_avg', 'all_table'])}
+            ${renderFormatCell(ccAvgObj, ['cc_avg'], true, true, 'bg-sky-950/15')}
+
+            <!-- Lichess (Rapid / Blitz / Bullet / Avg) -->
+            ${renderFormatCell(rData.li?.rapid, ['li_rapid', 'li_avg', 'all_avg', 'all_table'])}
+            ${renderFormatCell(rData.li?.blitz, ['li_blitz', 'li_avg', 'all_avg', 'all_table'])}
+            ${renderFormatCell(rData.li?.bullet, ['li_bullet', 'li_avg', 'all_avg', 'all_table'])}
+            ${renderFormatCell(liAvgObj, ['li_avg'], true, true, 'bg-emerald-950/15')}
+
+            <!-- FIDE (Classic / Rapid / Blitz / Avg) -->
+            ${renderFormatCell(rData.fide?.standard, ['fide_classic', 'fide_avg'])}
+            ${renderFormatCell(rData.fide?.rapid, ['fide_rapid', 'fide_avg'])}
+            ${renderFormatCell(rData.fide?.blitz, ['fide_blitz', 'fide_avg'])}
+            ${renderFormatCell(fideAvgObj, ['fide_avg'], false, true, 'bg-amber-950/15')}
+          </tr>
+        `;
+      }).join('');
+    }
+
+    /**
+     * =========================================================================
+     * 9. ADMIN ROSTER MANAGEMENT, EXPORT STANDALONE HTML & BACKUP
+     * =========================================================================
+     */
+    function openRosterModal() {
+      if (!appState.isAdmin) {
+        openAdminLoginModal();
+        return;
+      }
+      renderModalRosterTable();
+      document.getElementById('roster-modal').classList.remove('hidden');
+      document.getElementById('roster-modal').classList.add('flex');
+    }
+
+    function closeRosterModal() {
+      document.getElementById('roster-modal').classList.add('hidden');
+      document.getElementById('roster-modal').classList.remove('flex');
+      resetPlayerForm();
+      cancelResetToOriginal40();
+    }
+
+    function switchModalTab(tabName) {
+      const views = {
+        single: document.getElementById('mview-single'),
+        bulk: document.getElementById('mview-bulk'),
+        security: document.getElementById('mview-security')
+      };
+      const btns = {
+        single: document.getElementById('mtab-single'),
+        bulk: document.getElementById('mtab-bulk'),
+        security: document.getElementById('mtab-security')
+      };
+
+      Object.keys(views).forEach(key => {
+        if (key === tabName) {
+          views[key].classList.remove('hidden');
+          btns[key].className = 'px-4 py-2 text-xs font-bold rounded-t-xl border-b-2 border-emerald-500 text-emerald-400 bg-gray-800/60 cursor-pointer';
+        } else {
+          views[key].classList.add('hidden');
+          btns[key].className = 'px-4 py-2 text-xs font-bold rounded-t-xl border-b-2 border-transparent text-gray-400 hover:text-gray-200 cursor-pointer';
+        }
+      });
+    }
+
+    function renderModalRosterTable() {
+      const tbody = document.getElementById('modal-roster-tbody');
+      updateRosterCountUI();
+
+      tbody.innerHTML = appState.roster.map((p, idx) => `
+        <tr class="hover:bg-gray-900/80">
+          <td class="py-2.5 px-3 font-mono text-gray-500">${idx + 1}</td>
+          <td class="py-2.5 px-3 font-bold text-gray-100">${escapeHTML(p.name)}</td>
+          <td class="py-2.5 px-3 font-mono text-sky-400">${p.chessCom ? escapeHTML(p.chessCom) : '-'}</td>
+          <td class="py-2.5 px-3 font-mono text-emerald-400">${p.lichess ? escapeHTML(p.lichess) : '-'}</td>
+          <td class="py-2.5 px-3 font-mono text-amber-400">${p.fideId ? escapeHTML(String(p.fideId)) : '-'}</td>
+          <td class="py-2.5 px-3 text-center space-x-2 space-x-reverse">
+            <button type="button" onclick="editRosterPlayer('${escapeHTML(String(p.id))}')" class="px-2.5 py-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-sky-300 font-bold cursor-pointer">تعديل</button>
+            <button type="button" onclick="deleteRosterPlayer('${escapeHTML(String(p.id))}')" class="px-2.5 py-1 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 font-bold cursor-pointer">حذف</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function handleSavePlayer(event) {
+      event.preventDefault();
+      if (!appState.isAdmin) return;
+
+      const rawId = document.getElementById('field-id').value;
+      const name = document.getElementById('field-name').value.trim();
+      const chessCom = document.getElementById('field-chesscom').value.trim();
+      const lichess = document.getElementById('field-lichess').value.trim();
+      const fideIdRaw = document.getElementById('field-fideid').value.trim();
+      const fideId = (fideIdRaw && fideIdRaw.toLowerCase() !== 'null' && fideIdRaw !== '-') ? fideIdRaw : '';
+
+      const stdVal = document.getElementById('field-fide-std').value.trim();
+      const rpdVal = document.getElementById('field-fide-rpd').value.trim();
+      const blzVal = document.getElementById('field-fide-blz').value.trim();
+
+      const existingIdx = rawId ? appState.roster.findIndex(p => String(p.id) === String(rawId)) : -1;
+
+      const playerObj = {
+        id: rawId || ('player_' + Date.now()),
+        name,
+        chessCom,
+        lichess,
+        fideId,
+        fideManual: {
+          standard: stdVal ? Number(stdVal) : null,
+          rapid: rpdVal ? Number(rpdVal) : null,
+          blitz: blzVal ? Number(blzVal) : null
+        },
+        createdAt: existingIdx !== -1 ? (appState.roster[existingIdx].createdAt || Date.now()) : Date.now()
+      };
+
+      if (existingIdx !== -1) {
+        appState.roster[existingIdx] = playerObj;
+      } else {
+        appState.roster.push(playerObj);
+      }
+
+      saveRosterToStorage();
+      applyManualFideBaseline(playerObj);
+      resetPlayerForm();
+      renderModalRosterTable();
+      renderSummaryCards();
+      renderLeaderboard();
+      showToast(existingIdx !== -1 ? `تم تعديل بيانات ${name}` : `تمت إضافة ${name} للجروب`, 'success');
+      fetchAllLiveRatings(false);
+    }
+
+    function editRosterPlayer(id) {
+      if (!appState.isAdmin) return;
+      const p = appState.roster.find(item => String(item.id) === String(id));
+      if (!p) return;
+
+      document.getElementById('field-id').value = p.id;
+      document.getElementById('field-name').value = p.name || '';
+      document.getElementById('field-chesscom').value = p.chessCom || '';
+      document.getElementById('field-lichess').value = p.lichess || '';
+      document.getElementById('field-fideid').value = p.fideId || '';
+      document.getElementById('field-fide-std').value = p.fideManual?.standard || '';
+      document.getElementById('field-fide-rpd').value = p.fideManual?.rapid || '';
+      document.getElementById('field-fide-blz').value = p.fideManual?.blitz || '';
+
+      document.getElementById('form-heading').textContent = `تعديل بيانات: ${p.name}`;
+      document.getElementById('btn-cancel-edit').classList.remove('hidden');
+    }
+
+    function resetPlayerForm() {
+      document.getElementById('player-form').reset();
+      document.getElementById('field-id').value = '';
+      document.getElementById('form-heading').textContent = '+ إضافة عضو جديد للجروب';
+      document.getElementById('btn-cancel-edit').classList.add('hidden');
+    }
+
+    function deleteRosterPlayer(id) {
+      if (!appState.isAdmin) return;
+      appState.roster = appState.roster.filter(p => String(p.id) !== String(id));
+      delete appState.ratings[id];
+      delete appState.baselineRatings[id];
+      saveRosterToStorage();
+      renderModalRosterTable();
+      renderSummaryCards();
+      renderLeaderboard();
+      showToast('تم حذف العضو من القائمة', 'info');
+    }
+
+    function requestResetToOriginal40() {
+      if (!appState.isAdmin) return;
+      const box = document.getElementById('reset-40-confirm-box');
+      box.classList.remove('hidden');
+      box.classList.add('flex');
+    }
+
+    function cancelResetToOriginal40() {
+      const box = document.getElementById('reset-40-confirm-box');
+      if (!box) return;
+      box.classList.add('hidden');
+      box.classList.remove('flex');
+    }
+
+    function executeResetToOriginal40() {
+      if (!appState.isAdmin) return;
+      cancelResetToOriginal40();
+      appState.roster = JSON.parse(JSON.stringify(DEFAULT_PLAYERS));
+      appState.ratings = {};
+      appState.baselineRatings = {};
+      appState.hasInitialLoadCompleted = false;
+      appState.roster.forEach(p => {
+        ensurePlayerRatingStruct(p.id);
+        applyManualFideBaseline(p);
+      });
+      saveRosterToStorage();
+      renderModalRosterTable();
+      fetchAllLiveRatings(true);
+      showToast('تمت استعادة قائمة الـ 40 عضواً الأصليين بنجاح!', 'success');
+    }
+
+    function handleBulkImport(mode) {
+      if (!appState.isAdmin) return;
+      const raw = document.getElementById('bulk-paste-area').value.trim();
+      if (!raw) {
+        showToast('يرجى لصق قائمة الأعضاء أولاً', 'error');
+        return;
+      }
+
+      const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const parsedPlayers = lines.map((line, idx) => {
+        const parts = line.split(/,|\t|\|/).map(s => s.trim());
+        const cleanVal = (v) => (!v || v === '-' || v.toLowerCase() === 'null' || v.toLowerCase() === 'none') ? '' : v;
+
+        return {
+          id: 'player_' + (Date.now() + idx),
+          name: parts[0] || '',
+          chessCom: cleanVal(parts[1]),
+          lichess: cleanVal(parts[2]),
+          fideId: cleanVal(parts[3]),
+          fideManual: { standard: null, rapid: null, blitz: null },
+          createdAt: Date.now() + idx
+        };
+      }).filter(p => p.name !== '');
+
+      if (parsedPlayers.length === 0) {
+        showToast('لم يتم العثور على أسماء صالحة في النص المدخل', 'error');
+        return;
+      }
+
+      if (mode === 'replace') {
+        appState.roster = parsedPlayers;
+        appState.ratings = {};
+        appState.baselineRatings = {};
+        appState.hasInitialLoadCompleted = false;
+      } else {
+        appState.roster = appState.roster.concat(parsedPlayers);
+      }
+
+      saveRosterToStorage();
+      document.getElementById('bulk-paste-area').value = '';
+      switchModalTab('single');
+      renderModalRosterTable();
+      fetchAllLiveRatings(true);
+      showToast(`تم استيراد ${parsedPlayers.length} عضو بنجاح!`, 'success');
+    }
+
+    function exportJsonBackup() {
+      const jsonStr = JSON.stringify(appState.roster, null, 2);
+      const tempArea = document.createElement('textarea');
+      tempArea.value = jsonStr;
+      document.body.appendChild(tempArea);
+      tempArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempArea);
+
+      document.getElementById('bulk-paste-area').value = jsonStr;
+      showToast('تم نسخ النسخة الاحتياطية (JSON) إلى الحافظة!', 'success');
+    }
+
+    function importJsonBackup() {
+      if (!appState.isAdmin) return;
+      const raw = document.getElementById('bulk-paste-area').value.trim();
+      if (!raw) {
+        showToast('الصق كود JSON في مربع النص أولاً', 'error');
+        return;
+      }
+      try {
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr) || arr.length === 0) throw new Error('Invalid array');
+
+        const cleaned = arr.map((item, idx) => ({
+          id: String(item.id || ('player_' + (Date.now() + idx))),
+          name: String(item.name || item.Name || '').trim(),
+          chessCom: String(item.chessCom || item.chesscom || item['Chess.com'] || '').trim(),
+          lichess: String(item.lichess || item.Lichess || '').trim(),
+          fideId: String(item.fideId || item['FIDE ID'] || '').trim(),
+          fideManual: {
+            standard: item.fideManual?.standard ?? item.fide?.classic ?? null,
+            rapid: item.fideManual?.rapid ?? item.fide?.rapid ?? null,
+            blitz: item.fideManual?.blitz ?? item.fide?.blitz ?? null
+          },
+          createdAt: item.createdAt || (Date.now() + idx)
+        })).filter(p => p.name);
+
+        appState.roster = cleaned;
+        appState.ratings = {};
+        appState.baselineRatings = {};
+        appState.hasInitialLoadCompleted = false;
+
+        appState.roster.forEach(p => {
+          ensurePlayerRatingStruct(p.id);
+          applyManualFideBaseline(p);
+        });
+
+        saveRosterToStorage();
+        switchModalTab('single');
+        renderModalRosterTable();
+        fetchAllLiveRatings(true);
+        showToast(`تمت استعادة ${cleaned.length} عضو من النسخة الاحتياطية!`, 'success');
+      } catch (e) {
+        showToast('كود JSON غير صالح، تأكد من نسخ النص بالكامل', 'error');
+      }
+    }
+
+    /**
+     * Generates and downloads a standalone single-file index.html
+     * with the current roster & PIN baked directly into DEFAULT_PLAYERS
+     */
+    function downloadUpdatedHtmlFile() {
+      if (!appState.isAdmin) return;
+      try {
+        const currentHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        const serializedRoster = JSON.stringify(appState.roster, null, 6);
+        const updatedHtml = currentHtml
+          .replace(
+            /const DEFAULT_PLAYERS = \[[\s\S]*?\];/,
+            `const DEFAULT_PLAYERS = ${serializedRoster};`
+          )
+          .replace(
+            /const DEFAULT_ADMIN_PIN = '[^']*';/,
+            `const DEFAULT_ADMIN_PIN = '${appState.adminPin.replace(/'/g, "\\'")}';`
+          );
+
+        const blob = new Blob([updatedHtml], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'index.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showToast(`تم تنزيل ملف index.html محدث بـ ${appState.roster.length} عضواً!`, 'success');
+      } catch (e) {
+        showToast('تعذر تنزيل الملف، يمكنك استخدام نسخ JSON الاحتياطي.', 'error');
+      }
+    }
+
+    /**
+     * =========================================================================
+     * 10. UTILITIES
+     * =========================================================================
+     */
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      const styles = {
+        success: 'bg-emerald-950/95 border-emerald-500/40 text-emerald-200',
+        error: 'bg-rose-950/95 border-rose-500/40 text-rose-200',
+        info: 'bg-gray-900/95 border-gray-700 text-gray-200'
+      };
+      el.className = `pointer-events-auto px-4 py-2.5 rounded-xl border shadow-2xl text-xs font-bold transition-all duration-300 ${styles[type] || styles.info}`;
+      el.textContent = message;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(8px)';
+        setTimeout(() => el.remove(), 300);
+      }, 3200);
+    }
+
+    function escapeHTML(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
